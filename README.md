@@ -1,4 +1,4 @@
-A simple python module for extraction keywords from a document with different approches.
+A simple python module for extracting keywords from a document with different approches.
 The methods are clssified into three categories:
 <ol>
     <li>Statistical-based methods.</li>
