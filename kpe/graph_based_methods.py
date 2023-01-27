@@ -52,3 +52,17 @@ class Node:
         info = f"[\n  Name: {self.name}\n  Score: "
         info = info + f"{self.score}\n  Connections: {self.connections_name}\n]"
         return info
+
+
+class Graph:
+    def __init__(self, nodes: List[Node], name: str = "Graph"):
+        """The abstract class, representing a graph. """
+        self.all_nodes = {node.name: node for node in nodes}
+        self.NodeInfo = namedtuple("NodeInfo", "name connections score")
+
+    def __call__(self, node_name):
+        return self.NodeInfo(
+            node_name,
+            self.all_nodes[node_name].connections,
+            self.all_nodes[node_name].score,
+        )
