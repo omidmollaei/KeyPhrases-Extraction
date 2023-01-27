@@ -66,3 +66,118 @@ class Graph:
             self.all_nodes[node_name].connections,
             self.all_nodes[node_name].score,
         )
+
+
+class TextRank:
+    def __init__(self,
+                 window_size: int = 2,
+                 pos_filters: Tuple = ("JJ", "NN", "NNP", "NNS", "VBG", "VBN", "VB")):
+        """Setup some config for later extraction of keywords/key phrases.
+        Args:
+            window_size: window size of co-occur.
+            pos_filters: syntactic filter for uni-grams selection (as candidates).
+        """
+        self.filters = pos_filters
+        self.window_size = window_size
+
+    def _uni_gram_candidates(self, pos_tags):
+        uni_gram_candidates = list()
+        for word, pos in pos_tags:
+            if pos in self.filters:
+                uni_gram_candidates.append(word)
+        return uni_gram_candidates
+
+    def _find_connections(self, document_tokenized, uni_gram_candidates):
+        connections = {candidate: set() for candidate in uni_gram_candidates}
+        # Slice over document to detect nodes and their edges
+        for w_begin in range(0, len(document_tokenized) - (self.window_size - 1)):
+            w_end = w_begin + self.window_size
+            window = document_tokenized[w_begin:w_end]
+            for i, w1 in enumerate(window[:-1]):
+                for j, w2 in enumerate(window[i + 1:]):
+                    if w1 in uni_gram_candidates and w2 in uni_gram_candidates:
+                        connections[w1].add(w2)
+                        connections[w2].add(w1)
+        return connections
+
+    def _build_nodes(self, document_tokenized, uni_gram_candidates):
+        """Find the connections (edges) and then build their corresponding object"""
+        raw_connections = self._find_connections(
+            document_tokenized, uni_gram_candidates)  # connections as set
+        raw_nodes = {c: Node(c, 1) for c in uni_gram_candidates}  # Build nodes without connections.
+        nodes = []
+        for node_name, connections in raw_connections.items():
+            node_connections = [(raw_nodes[c], 1) for c in connections]
+            node = raw_nodes[node_name]
+            node.build_connections(node_connections)
+            nodes.append(node)
+        return nodes
+
+    def _ranking(self, graph: Graph, d, n_iter):
+        """Here, we run modified page rank algorithm"""
+        scores = {node_name: node_obj.score for node_name, node_obj in graph.all_nodes.items()}
+        for iter_no in range(n_iter):
+            for node_name, node_obj in graph.all_nodes.items():
+                new_score = 0  # Here we do not need connections weight at all.
+                for connected_node in node_obj.connections:
+                    new_score += (connected_node.score / len(connected_node.connections))
+                graph.all_nodes[node_name].socre = (1 - d) + d * new_score
+                scores[node_name] = (1 - d) + d * new_score
+        return scores
+
+    def _build_n_grams(self, document_tokenized: list, uni_grams: dict, ngrams: int):
+        extended_keywords = uni_grams.copy()
+        for w_begin in range(0, len(document_tokenized) - (ngrams - 1)):  # slice over document
+            w_end = w_begin + ngrams
+            window = document_tokenized[w_begin: w_end]
+            for i, word1 in enumerate(window[:-1]):
+                for j, word2 in enumerate(window[i + 1:]):
+                    if (word1 in uni_grams) and (word2 in uni_grams):
+                        extended_keywords[word1 + " " + word2] = uni_grams[word1] + uni_grams[word2]
+        extended_keywords = pd.Series(extended_keywords).sort_values(ascending=False)
+        return extended_keywords
+
+    # def _post_processing(self, keywords: pd.Series, max_len: int):
+
+    def extract(self,
+                document: str,
+                d: float = 0.85,
+                n_iter: int = 20,
+                top: int = 6,
+                max_len: int = 2,):
+
+        """This assumes that the input document has been already preprocessed."""
+        document_tokenized = nltk.word_tokenize(document)
+        pos_tags = nltk.pos_tag(document_tokenized)
+        uni_gram_candidates = self._uni_gram_candidates(pos_tags)
+        nodes = self._build_nodes(document_tokenized, uni_gram_candidates)
+        graph = Graph(nodes, name="document_graph")
+        scores = self._ranking(graph, d, n_iter)
+        scores = pd.Series(scores).sort_values(ascending=False)
+        selected_uni_grams = scores.iloc[:min(int(top + (top // 2)), len(scores))]
+        selected_uni_grams = dict(selected_uni_grams)
+        keywords = self._build_n_grams(document_tokenized, selected_uni_grams, max_len)
+        # if post_processing:
+        #    keywords = self._post_processing(keywords, max_len)
+        keywords = keywords.iloc[:top]
+        return keywords
+
+    @staticmethod
+    def preprocess(document: str):
+        def _clean(sent):
+            sent = sent.lower().strip()  # lowercase the document
+            sent = re.sub('[^a-z\d ]', '', sent)  # remove non-english characters
+            sent = re.sub(' +', ' ', sent)  # Remove extra white spaces
+            return sent
+
+        sentences = nltk.sent_tokenize(document)
+        sentences_cleaned = [_clean(s) for s in sentences]
+        document = " . ".join(sentences_cleaned)
+        return document
+
+    @classmethod
+    def extract_keywords(cls, document: str):
+        document_preprocessed = cls.preprocess(document)
+        extractor = cls()
+        keywords = extractor.extract(document_preprocessed)
+        return keywords
