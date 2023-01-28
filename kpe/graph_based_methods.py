@@ -210,3 +210,42 @@ class SingleRank(TextRank):
                     node1.connections_weight[prev_weight_i] = new_weight
                     node2.connections_weight[prev_weight_j] = new_weight
 
+    def _ranking(self, graph: Graph, d, n_iter):
+        """Here, we run modified page rank algorithm"""
+        scores = {node_name: node_obj.score for node_name, node_obj in graph.all_nodes.items()}
+        for iter_no in range(n_iter):
+            for node_name, node_obj in graph.all_nodes.items():
+                new_score = 0  # Here we do not need connections weight at all.
+                for connected_node in node_obj.connections:
+                    denominator = sum(connected_node.connections_weight)
+                    w_ji = graph.all_nodes[connected_node.name].connections_name.index(node_name)
+                    w_ji = graph.all_nodes[connected_node.name].connections_weight[w_ji]
+                    new_score += (connected_node.score * w_ji) / denominator
+                graph.all_nodes[node_name].socre = (1 - d) + d * new_score
+                scores[node_name] = (1 - d) + d * new_score
+        return scores
+
+    def extract(self,
+                document: str,
+                d: float = 0.85,
+                n_iter: int = 20,
+                top: int = 6,
+                max_len: int = 2,
+                post_processing: bool = True):
+
+        """This assumes that the input document has been already preprocessed."""
+        document_tokenized = nltk.word_tokenize(document)
+        pos_tags = nltk.pos_tag(document_tokenized)
+        uni_gram_candidates = self._uni_gram_candidates(pos_tags)
+        nodes = self._build_nodes(document_tokenized, uni_gram_candidates)
+        graph = Graph(nodes, name="document_graph")
+        self._edges_weight(graph, document_tokenized, uni_gram_candidates)
+        scores = self._ranking(graph, d, n_iter)
+        scores = pd.Series(scores).sort_values(ascending=False)
+        # selected_uni_grams = scores.iloc[:min(int(top+(top//2)), len(scores))]
+        selected_uni_grams = dict(scores)
+        keywords = self._build_n_grams(document_tokenized, selected_uni_grams, max_len)
+        # if post_processing:
+        #    keywords = self._post_processing(keywords, max_len)
+        keywords = keywords.iloc[:top]
+        return keywords
