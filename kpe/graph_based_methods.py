@@ -181,3 +181,32 @@ class TextRank:
         extractor = cls()
         keywords = extractor.extract(document_preprocessed)
         return keywords
+
+
+class SingleRank(TextRank):
+    def _dec_prod(self, window):
+        result = set()
+        for i, word1 in enumerate(window[:-1]):
+            for word2 in window[i + 1:]:
+                result.add((word1, word2))
+        return result
+
+    def _edges_weight(self, graph: Graph, document_tokenized: str, uni_grams: list):
+        for w_begin in range(0, len(document_tokenized) - (self.window_size * 2 - 1)):
+            w_end = w_begin + self.window_size * 2
+            window = document_tokenized[w_begin:w_end]
+            pairs_in_window = self._dec_prod(window=window)
+            for pair in pairs_in_window:
+                w1, w2 = pair
+                if not ((w1 in uni_grams) and (w2 in uni_grams)):
+                    continue
+                node1, node2 = graph.all_nodes[w1], graph.all_nodes[w2]
+                if w2 in node1.connections_name:
+                    distance = abs(window.index(w2) - window.index(w1))
+                    prev_weight_i = node1.connections_name.index(w2)
+                    prev_weight_j = node2.connections_name.index(w1)
+                    prev_weight = node1.connections_weight[prev_weight_i]
+                    new_weight = prev_weight + (1 / distance)
+                    node1.connections_weight[prev_weight_i] = new_weight
+                    node2.connections_weight[prev_weight_j] = new_weight
+
