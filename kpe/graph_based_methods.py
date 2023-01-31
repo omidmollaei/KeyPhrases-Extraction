@@ -6,6 +6,7 @@ import re
 import nltk
 import numpy as np
 import pandas as pd
+from FRAKE import FRAKE
 from typing import List, Tuple
 from collections import namedtuple
 
@@ -249,3 +250,16 @@ class SingleRank(TextRank):
         #    keywords = self._post_processing(keywords, max_len)
         keywords = keywords.iloc[:top]
         return keywords
+
+
+class Frake:
+    def __init__(self, lang: str = "en"):
+        self.lang = lang
+
+    def extract(self, document: str, hu_hiper: float = 0.4, n: int = 5):
+        """It is assumed that the input document has been preprocessed."""
+        extractor = FRAKE.KeywordExtractor(lang='en', hu_hiper=0.4, Number_of_keywords=10)
+        keywords = extractor.extract_keywords(document)
+        return keywords
+
+
