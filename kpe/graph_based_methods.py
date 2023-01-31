@@ -253,12 +253,19 @@ class SingleRank(TextRank):
 
 
 class Frake:
+    """
+    Farke is another graph-based method for extracting keywords and key phrases of a document.
+    It can be used to extract keywords of persian language directly. The language can be specified
+    in constructor.
+    Frake source:
+        https://github.com/cominsys/FRAKE
+    """
     def __init__(self, lang: str = "en"):
         self.lang = lang
 
-    def extract(self, document: str, hu_hiper: float = 0.4, n: int = 5):
+    def extract(self, document: str, hu_hiper: float = 0.4, top: int = 5):
         """It is assumed that the input document has been preprocessed."""
-        extractor = FRAKE.KeywordExtractor(lang='en', hu_hiper=0.4, Number_of_keywords=10)
+        extractor = FRAKE.KeywordExtractor(lang='en', hu_hiper=hu_hiper, Number_of_keywords=top)
         keywords = extractor.extract_keywords(document)
         return keywords
 
@@ -274,3 +281,10 @@ class Frake:
         sentences_cleaned = [_clean(s) for s in sentences]
         document = " . ".join(sentences_cleaned)
         return document
+
+    @classmethod
+    def extract_keywords(cls, document: str):
+        document_preprocessed = cls.preprocess(document)
+        extractor = FRAKE.KeywordExtractor(lang='en', hu_hiper=0.4, Number_of_keywords=5)
+        keywords = extractor.extract_keywords(document)
+        return keywords
