@@ -262,4 +262,15 @@ class Frake:
         keywords = extractor.extract_keywords(document)
         return keywords
 
+    @staticmethod
+    def preprocess(document: str):
+        def _clean(sent):
+            sent = sent.lower().strip()  # lowercase the document
+            sent = re.sub('[^a-z\d ]', '', sent)  # remove non-english characters
+            sent = re.sub(' +', ' ', sent)  # Remove extra white spaces
+            return sent
 
+        sentences = nltk.sent_tokenize(document)
+        sentences_cleaned = [_clean(s) for s in sentences]
+        document = " . ".join(sentences_cleaned)
+        return document
