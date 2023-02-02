@@ -305,3 +305,25 @@ class Yake:
     def extract(self, document: str):
         keywords = self.extractor.extract_keywords(document)
         return dict(keywords)
+
+    @staticmethod
+    def preprocess(document: str):
+        def _clean(sent):
+            sent = sent.lower().strip()  # lowercase the document
+            sent = re.sub('[^a-z\d ]', '', sent)  # remove non-english characters
+            sent = re.sub(' +', ' ', sent)  # Remove extra white spaces
+            return sent
+
+        sentences = nltk.sent_tokenize(document)
+        sentences_cleaned = [_clean(s) for s in sentences]
+        document = " . ".join(sentences_cleaned)
+        return document
+
+    @classmethod
+    def extract_keywords(cls, document: str, lang: str = "en", dedup_lim: float = 0.75, top: int = 5,
+                         ngrams: int = 3):
+
+        document_preprocessed = cls.preprocess(document)
+        extractor = yake.KeywordExtractor(lan=lang, dedupLim=dedup_lim, top=top, n=ngrams)
+        keywords = extractor.extract_keywords(document)
+        return dict(keywords)
