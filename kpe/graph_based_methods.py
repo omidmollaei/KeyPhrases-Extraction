@@ -6,6 +6,8 @@ import re
 import nltk
 import numpy as np
 import pandas as pd
+import yake
+
 from FRAKE import FRAKE
 from typing import List, Tuple
 from collections import namedtuple
@@ -288,3 +290,18 @@ class Frake:
         extractor = FRAKE.KeywordExtractor(lang='en', hu_hiper=0.4, Number_of_keywords=5)
         keywords = extractor.extract_keywords(document)
         return keywords
+
+
+class Yake:
+    def __init__(
+            self,
+            lang: str = "en",
+            dedup_lim: float = 0.75,
+            top: int = 5,
+            max_n_gram_size: int = 3):
+
+        self.extractor = yake.KeywordExtractor(lan=lang, dedupLim=dedup_lim, top=top, n=max_n_gram_size)
+
+    def extract(self, document: str):
+        keywords = self.extractor.extract_keywords(document)
+        return dict(keywords)
