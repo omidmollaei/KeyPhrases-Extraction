@@ -160,8 +160,8 @@ class TextRank:
         keywords = self._build_n_grams(document_tokenized, selected_uni_grams, max_len)
         # if post_processing:
         #    keywords = self._post_processing(keywords, max_len)
-        keywords = keywords.iloc[:top]
-        return keywords
+        keywords = keywords.iloc[:top].sort_values(ascending=False)
+        return dict(keywords)
 
     @staticmethod
     def preprocess(document: str):
@@ -231,8 +231,7 @@ class SingleRank(TextRank):
                 d: float = 0.85,
                 n_iter: int = 20,
                 top: int = 6,
-                max_len: int = 2,
-                post_processing: bool = True):
+                max_len: int = 2,):
 
         """This assumes that the input document has been already preprocessed."""
         document_tokenized = nltk.word_tokenize(document)
@@ -248,8 +247,8 @@ class SingleRank(TextRank):
         keywords = self._build_n_grams(document_tokenized, selected_uni_grams, max_len)
         # if post_processing:
         #    keywords = self._post_processing(keywords, max_len)
-        keywords = keywords.iloc[:top]
-        return keywords
+        keywords = keywords.iloc[:top].sort_values(ascending=False)
+        return dict(keywords)
 
 
 class Frake:
@@ -265,7 +264,7 @@ class Frake:
 
     def extract(self, document: str, hu_hiper: float = 0.4, top: int = 5):
         """It is assumed that the input document has been preprocessed."""
-        extractor = FRAKE.KeywordExtractor(lang='en', hu_hiper=hu_hiper, Number_of_keywords=top)
+        extractor = FRAKE.KeywordExtractor(lang=self.lang, hu_hiper=hu_hiper, Number_of_keywords=top)
         keywords = extractor.extract_keywords(document)
         return keywords
 
