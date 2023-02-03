@@ -1,0 +1,6 @@
+yake
+nltk
+numpy
+pandas
+sklearn
+sentence_transformers
